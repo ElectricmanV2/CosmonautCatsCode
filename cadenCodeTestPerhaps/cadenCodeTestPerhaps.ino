@@ -3,14 +3,27 @@
 #include <Adafruit_Sensor.h>
 #include "Adafruit_BMP3XX.h"
 
+#include <SoftwareSerial.h>
+
 static constexpr int I2CSDA = 6; //
 static constexpr int I2CSCL = 7; // change ports once set up
 
 #define seaLevelPressure (1013.25)
 Adafruit_BMP3XX bmp;
+
+SoftwareSerial XBee(10,11) // Define pins: (RX, TX)
+
+int teamID = 0;
+
 int curTemp = 0;
 int curPres = 0;
 int curAlti = 0;
+int prevAlti = 0;
+int curVel = 0;
+int prevVel = 0;
+int Accel = 0;
+
+int prevReadTime = 0;
 
 void readSensors() {
 
@@ -20,9 +33,25 @@ void readSensors() {
     return;
   }
 
+  if(prevReadTime == 0){
+    prevReadTime = millis()/1000;
+  }
+
   curTemp = bmp.temperature;
   curPres = bmp.pressure / 100;
+
+  prevAlti = curAlti;
   curAlti = bmp.readAltitude(seaLevelPressure);
+
+  int timeDifference = (millis()/1000)-prevReadTime;
+
+  int tempVel = curVel;
+  curVel = (curAlti-prevAlti) / timeDifference;
+  prevVel = tempVel;
+
+  Accel = (curVel-prevVel) / timeDifference;
+  
+
 }
 
 void displaySensors(){
@@ -47,6 +76,8 @@ void displaySensors(){
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  XBee.begin(9600);
+
   while (!Serial);
 
   if (!bmp.begin_I2C()) {
