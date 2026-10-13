@@ -11,7 +11,7 @@ static constexpr int I2CSCL = 7; // change ports once set up
 #define seaLevelPressure (1013.25)
 Adafruit_BMP3XX bmp;
 
-SoftwareSerial XBee(10,11) // Define pins: (RX, TX)
+SoftwareSerial XBee(10,11); // Define pins: (RX, TX)
 
 int teamID = 0;
 
