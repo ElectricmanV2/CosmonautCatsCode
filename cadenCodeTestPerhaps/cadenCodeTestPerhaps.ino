@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <SPI.h>
+#include <LPS.h>
 
 #include <SD.h>
 
@@ -8,9 +9,12 @@
 
 #include <LSM6.h>
 
-//BMP
+#include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
+
 static constexpr int I2CSDA = 4; //
 static constexpr int I2CSCL = 5; // change ports once set up
+
+
 
 //SD CARD
 const int TX_SD = 25;
@@ -21,16 +25,23 @@ const int SCK_SD = 24;
 #define seaLevelPressure (1013.25)
 
 LSM6 imu;
+LPS ps;
 File dataLog;
+SFE_UBLOX_GNSS gps;
 
 const int teamID = 0;
 
-int curTemp = 0;
-int curPres = 0;
-int curAlti = 0;
-int prevAlti = 0;
-int curVel = 0;
-int prevVel = 0;
+float curTemp = 0;
+float curPres = 0;
+
+float curAlti = 0;
+float prevAlti = 0;
+
+float curVel = 0;
+float prevVel = 0;
+
+long latitude = 0;
+long longitude = 0;
 
 float Accel[3] = {0,0,0};
 
@@ -44,6 +55,14 @@ void readSensors() {
   if(prevReadTime == 0){
     prevReadTime = millis()/1000;
   }
+
+  //PressureSensor
+  curTemp = ps.readTemperatureC();
+  curPres = ps.readPressureMillibars()
+  curAlti = ps.pressureToAltitudeMeters(curPres);
+
+  latitude = gps.getLatitude();
+  longitude = gps.getLongitude();
 
   /*
   curTemp = bmp.temperature;
@@ -64,6 +83,7 @@ void readSensors() {
   Accel[0] = (imu.a.x * 0.061)/1000;
   Accel[1] = (imu.a.y * 0.061)/1000;
   Accel[2] = (imu.a.z * 0.061)/1000;
+  serial.print(imu.readGyro());
 
   return;
 }
@@ -114,7 +134,24 @@ void setup() {
     Serial.println("Failed to detect and initialize IMU!");
     while (1);
   }
+
+  if (!ps.init())
+  {
+    Serial.println("Failed to autodetect pressure sensor!");
+    while (1);
+  }
+
+  if (!myGNSS.begin()) //Connect to the u-blox module using Wire port
+  {
+    Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing."));
+    while (1);
+  }
+
+  myGNSS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
+  myGNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the communications port settings to flash and BBR
+
   imu.enableDefault();
+  ps.enableDefault();
 
   /*
   Serial.print("Initializing SD card");
