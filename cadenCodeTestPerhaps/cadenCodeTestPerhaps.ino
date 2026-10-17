@@ -51,13 +51,13 @@ long longitude = 0;
 float batVolt = 0;
 
 // RGB CODES              R           G       B       RG       RB         GB
-String states[6] = {"Launch Detect","Boost","Coast","Apogee","Descent","Landed"}
+String states[6] = {"Launch Detect","Boost","Coast","Apogee","Descent","Landed"};
 int flightState = 0;
 
 float Accel[3] = {0,0,0};
 float gyro[3] = {0,0,0}; //roll, pitch, yaw
 
-string teleData = ""; //TeamID , Altitude, Temperature, Velocity, Accel X, Accel Y, Accel Z, GPS Lat, GPS Long, Flight State, Bat Volt, Roll, Pitch, Yaw
+String teleData = ""; //TeamID , Altitude, Temperature, Velocity, Accel X, Accel Y, Accel Z, GPS Lat, GPS Long, Flight State, Bat Volt, Roll, Pitch, Yaw
 
 int prevReadTime = 0;
 
@@ -96,6 +96,8 @@ void readSensors() {
   gyro[0] = (imu.g.x);
   gyro[1] = (imu.g.y);
   gyro[2] = (imu.g.z);
+
+  teleData = teamID+","+curAlti+","+curTemp+","+curVel+","+Accel[0]+","+Accel[1]+","+Accel[2]+","+latitude+","+longitude+","+states[flightState]+","+batVolt+","+gyro[0]+","+gyro[1]+","+gyro[2];
 
   return;
 }
@@ -139,7 +141,7 @@ void displaySensors(){
   Serial.print("GPS Longitude = ");
   Serial.println(latitude);
 
-  Serial.print("Flight State: ")
+  Serial.print("Flight State: ");
   Serial.println(states[flightState]);
 
   Serial.print("Battery Voltage = ");
