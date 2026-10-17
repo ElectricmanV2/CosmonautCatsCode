@@ -15,17 +15,26 @@ static constexpr int I2CSDA = 4; //
 static constexpr int I2CSCL = 5; // change ports once set up
 
 // Volt Reader ACD0 , GP26, pin 31
+const int voltReader = 26;
+
+//xBee
+const int xbWrite = 8; //pin 11 WRITE TO THE XBEE
+const int xbRead = 9; //pin 12 READ FROM THE XBEE
 
 //SD CARD
-const int TX_SD = 25;
-const int RX_SD = 21;
-const int CSn_SD = 22;
-const int SCK_SD = 24;
+const int TX_SD = 19;
+const int RX_SD = 16;
+const int CSn_SD = 17;
+const int SCK_SD = 18;
+
+//Zoe
+const int zoeRX = 12;
+const int zoeTX = 13;
 
 //LEDS
-int rgbR = 0;
-int rgbG = 0;
-int rgbB = 0;
+int rgbR = 2;
+int rgbG = 14;
+int rgbB = 3;
 
 #define seaLevelPressure (1013.25)
 
@@ -197,15 +206,41 @@ void changeFlightState(int n){
   return;
 }
 
+void sendTelem(){
+
+  Serial1.println(teleData);
+
+  return;
+}
+
+void readTelem(){
+
+  if (Serial1.available()){
+
+    String readString = Serial1.readString();
+    readString.trim();
+    Serial.print("Received: " + readString);
+
+  }
+
+  return;
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  Wire.begin();
+  Serial1.begin(9600); //xBee
+
+  Serial1.setTX(xbWrite);
+  Serial1.setRX(xbRead);
 
   while (!Serial);
+  while (!Serial1);
 
   Wire.setSDA(I2CSDA);
   Wire.setSCL(I2CSCL);
+
+  Wire.begin();
 
   if (!imu.init())
   {
@@ -218,6 +253,7 @@ void setup() {
     Serial.println("Failed to autodetect pressure sensor!");
     while (1);
   }
+
 
   if (!gps.begin()) //Connect to the u-blox module using Wire port
   {
@@ -264,9 +300,17 @@ void loop() {
   
   count+=1;
   readSensors();
+
+  if(Serial1.available()){
+    readTelem();
+  }
+
   if(count==4){
     displaySensors();
     count = 0;
+  }
+  if(count%2==0){
+    sendTelem();
   }
   delay(250);
 }
