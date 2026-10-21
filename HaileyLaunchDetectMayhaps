@@ -1,0 +1,88 @@
+// launch detect 
+// fart fart fart
+
+// notes 
+// use Accel[1] to test my conditions type shit
+// i will be adding to his change flight state type shit 
+
+void changeFlightState(int n){
+  flightState = n;
+  
+  //rgb
+  switch(flightState){
+    case 0:
+    // launch
+      digitalWrite(rgbR, 1);
+      digitalWrite(rgbG, 0);
+      digitalWrite(rgbB, 0);
+      
+    // changes to boost state
+      if Accel[1] >= 4:
+        case += 1;
+        break;
+      
+    case 1:
+    // boost
+      digitalWrite(rgbR, 0);
+      digitalWrite(rgbG, 1);
+      digitalWrite(rgbB, 0);
+      
+    // changes to coast state
+    /// i may have wrong variable name for time, idfk tbhness
+      if Accel[1] < 1 && prevReadTime == 3.9
+        (aerobreak deployment aswell)
+        case += 1;
+        break;
+      
+    case 2:
+    // coast (aerobrak deployment)
+      digitalWrite(rgbR, 0);
+      digitalWrite(rgbG, 0);
+      digitalWrite(rgbB, 1);
+      
+    // changes to apogee state
+      if Accel[1] == 1:
+        case += 1;
+        break;
+      
+   
+    case 3:
+    // apogee
+      digitalWrite(rgbR, 1);
+      digitalWrite(rgbG, 1);
+      digitalWrite(rgbB, 0);
+      
+    // changes to descent state
+      if Accel[1] > 1:
+        case += 1;
+        break;
+      
+    case 4:
+    // descent 
+      digitalWrite(rgbR, 1);
+      digitalWrite(rgbG, 0);
+      digitalWrite(rgbB, 1);
+      
+    // changes to landed state
+      if Accel[1] = 0:
+        case += 1;
+        break;
+      
+    case 5:
+    // landed type shit 
+      digitalWrite(rgbR, 0);
+      digitalWrite(rgbG, 1);
+      digitalWrite(rgbB, 1);
+      
+    // we are landed, no more states to check, DUH
+      break;
+      
+    default:
+      digitalWrite(rgbR, HIGH);
+      digitalWrite(rgbG, HIGH);
+      digitalWrite(rgbB, HIGH);
+      
+      break;
+  }
+  return;
+}
