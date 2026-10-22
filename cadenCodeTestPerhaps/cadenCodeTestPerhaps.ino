@@ -28,13 +28,13 @@ const int CSn_SD = 17;
 const int SCK_SD = 18;
 
 //Zoe
-const int zoeRX = 12;
-const int zoeTX = 13;
+const int zoeRX = 13;
+const int zoeTX = 12;
 
 //LEDS
-int rgbR = 2;
-int rgbG = 14;
-int rgbB = 3;
+int rgbR = 20;
+int rgbG = 21;
+int rgbB = 22;
 
 #define seaLevelPressure (1013.25)
 
@@ -52,7 +52,6 @@ float curAlti = 0;
 float prevAlti = 0;
 
 float curVel = 0;
-float prevVel = 0;
 
 long latitude = 0;
 long longitude = 0;
@@ -71,7 +70,6 @@ String teleData = ""; //TeamID , Altitude, Temperature, Velocity, Accel X, Accel
 int prevReadTime = 0;
 
 void readSensors() {
-
   //Altimu
   imu.read();
 
@@ -84,29 +82,32 @@ void readSensors() {
   curPres = ps.readPressureMillibars();
   curAlti = ps.pressureToAltitudeMeters(curPres);
 
-  latitude = gps.getLatitude();
-  longitude = gps.getLongitude();
-
   // Vel calc
 
   prevAlti = curAlti;
 
   int timeDifference = (millis()/1000)-prevReadTime;
 
-  int tempVel = curVel;
   curVel = (curAlti-prevAlti) / timeDifference;
-  prevVel = tempVel;
 
   //Serial.println((imu.a.x * 0.061)/1000);
   Accel[0] = (imu.a.x * 0.061)/1000;
   Accel[1] = (imu.a.y * 0.061)/1000;
   Accel[2] = (imu.a.z * 0.061)/1000;
 
-  gyro[0] = (imu.g.x);
-  gyro[1] = (imu.g.y);
-  gyro[2] = (imu.g.z);
 
-  teleData = teamID+","+curAlti+","+curTemp+","+curVel+","+Accel[0]+","+Accel[1]+","+Accel[2]+","+latitude+","+longitude+","+states[flightState]+","+batVolt+","+gyro[0]+","+gyro[1]+","+gyro[2];
+  gyro[0] = (imu.g.x * 0.061)/1000;
+  gyro[1] = (imu.g.y * 0.061)/1000;
+  gyro[2] = (imu.g.z * 0.061)/1000;
+
+  batVolt = analogRead(A0) * (5.0 / 1023.0);
+
+  return;
+}
+
+void readGPS(){
+  latitude = gps.getLatitude();
+  longitude = gps.getLongitude();
 
   return;
 }
@@ -178,35 +179,44 @@ void changeFlightState(int n){
       digitalWrite(rgbR, 1);
       digitalWrite(rgbG, 0);
       digitalWrite(rgbB, 0);
+      break;
     case 1:
       digitalWrite(rgbR, 0);
       digitalWrite(rgbG, 1);
       digitalWrite(rgbB, 0);
+      break;
     case 2:
       digitalWrite(rgbR, 0);
       digitalWrite(rgbG, 0);
       digitalWrite(rgbB, 1);
+      break;
     case 3:
       digitalWrite(rgbR, 1);
       digitalWrite(rgbG, 1);
       digitalWrite(rgbB, 0);
+      break;
     case 4:
       digitalWrite(rgbR, 1);
       digitalWrite(rgbG, 0);
       digitalWrite(rgbB, 1);
+      break;
     case 5:
       digitalWrite(rgbR, 0);
       digitalWrite(rgbG, 1);
       digitalWrite(rgbB, 1);
+      break;
     default:
       digitalWrite(rgbR, HIGH);
       digitalWrite(rgbG, HIGH);
       digitalWrite(rgbB, HIGH);
+      break;
   }
   return;
 }
 
 void sendTelem(){
+
+  teleData = teamID+","+curAlti+","+curTemp+","+curVel+","+Accel[0]+","+Accel[1]+","+Accel[2]+","+latitude+","+longitude+","+states[flightState]+","+batVolt+","+gyro[0]+","+gyro[1]+","+gyro[2];
 
   Serial1.println(teleData);
 
@@ -229,13 +239,18 @@ void readTelem(){
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  
+  Serial1.setTX(zoeTX);
+  Serial1.setRX(zoeRX);
+  Serial2.setTX(xbWrite);
+  Serial2.setRX(xbRead);
+
   Serial1.begin(9600); //xBee
 
-  Serial1.setTX(xbWrite);
-  Serial1.setRX(xbRead);
+  Serial2.begin(9600);
 
   while (!Serial);
-  while (!Serial1);
+  //while (!Serial1);
 
   Wire.setSDA(I2CSDA);
   Wire.setSCL(I2CSCL);
@@ -254,19 +269,31 @@ void setup() {
     while (1);
   }
 
-
-  if (!gps.begin()) //Connect to the u-blox module using Wire port
+  /*
+  if (!gps.begin(Serial1)) //Connect to the u-blox module using Wire port
   {
+    Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing."));
+    while (1);
+  }*/
+
+  if(gps.begin(Serial1) == true){
+    Serial.println("Connected at 9600 baud!");
+  }
+  else{
     Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing."));
     while (1);
   }
 
+
+  gps.setSerialRate(9600);
+  gps.setUART1Output(COM_TYPE_UBX);
   gps.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
   gps.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the communications port settings to flash and BBR
 
   imu.enableDefault();
   ps.enableDefault();
 
+  /*
   //SD
   Serial.print("Initializing SD card");
 
@@ -283,34 +310,53 @@ void setup() {
 
   Serial.write(dataLog.read()); //print data to output for debug
   */
-  dataLog.close(); //REMEMBER TO CLOSE THE FILE
+  //dataLog.close(); //REMEMBER TO CLOSE THE FILE 
 
   pinMode(rgbR, OUTPUT);
   pinMode(rgbG, OUTPUT);
   pinMode(rgbB, OUTPUT);
 
   changeFlightState(0);
-
+  Serial.println("FInished setup");
 }
 
 int count = 0;
+long startTime;
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
+  startTime = millis();
   count+=1;
+  
   readSensors();
+
+  //Serial.print("Time1: ");
+  //Serial.println((millis()-startTime));
 
   if(Serial1.available()){
     readTelem();
   }
 
-  if(count==4){
-    displaySensors();
-    count = 0;
-  }
   if(count%2==0){
+    //readGPS();
+    displaySensors();
     sendTelem();
   }
-  delay(250);
+  if(count==4){
+    /*
+    if(flightState==5){
+      flightState = 0;
+    }
+    else{
+      flightState+= 1;
+    }
+    changeFlightState(flightState);
+    */
+    count = 0;
+  }
+
+  //Serial.print("Time2: ");
+  //Serial.println((millis()-startTime));
+
+  while((millis()-startTime) < 250);
 }
