@@ -1,0 +1,38 @@
+// MOTOR CODE 
+  
+  // this would initialize the stepper motor so that i can touch it 
+  // this stuff needs to be added in the beginnging
+  
+  #include <AccelStepper.h>
+  AccelStepper sigmaStepper(AccelStepper::DRIVER, STEP, DIR);
+  
+  // this needs to be entered in set up
+  void setup(){
+    stepper.setMaxSpeed(200.0);
+    
+    // find acceleration through testing 
+    // or just a pick number
+    stepper.setAcceleration(IDKDIKDIDKDIDK/????????);
+    
+    } 
+    
+    // this needs to be added as a function before set up
+  void stepperActivate(int active){
+   // active is referring to if aerobreaks r needed
+   // 1 means yes please! 
+   // 0 means no ew...
+   
+   if (active == 1){
+  // rest are calc based on desired position 
+  // test with 50 deg to make sure clockwise
+  // jared number is 55
+    stepper.runToNewPosition(50/1.8);
+    }
+    
+   else{
+  // close dat bih
+    stepper.runToNewPosition(-50/1.8);
+    }
+   
+   return;
+    }
