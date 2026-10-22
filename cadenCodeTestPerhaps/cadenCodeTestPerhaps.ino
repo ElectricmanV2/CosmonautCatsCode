@@ -36,6 +36,8 @@ int rgbR = 20;
 int rgbG = 21;
 int rgbB = 22;
 
+int mosfet = 2;
+
 #define seaLevelPressure (1013.25)
 
 LSM6 imu;
@@ -115,7 +117,7 @@ void readGPS(){
 }
 
 void displaySensors(){
-  
+  /*
   Serial.print("Team ID: ");
   Serial.println(teamID);
 
@@ -133,7 +135,7 @@ void displaySensors(){
 
   Serial.print("Velocity = ");
   Serial.print(curVel);
-  Serial.println(" m/s");
+  Serial.println(" m/s");*/
 
   Serial.print("Accel X = ");
   Serial.print(Accel[0]);
@@ -146,7 +148,7 @@ void displaySensors(){
   Serial.print("Accel Z = ");
   Serial.print(Accel[2]);
   Serial.println(" m/s");
-
+  /*
   Serial.print("GPS Latitude = ");
   Serial.println(latitude);
 
@@ -157,7 +159,7 @@ void displaySensors(){
   Serial.println(states[flightState]);
 
   Serial.print("Battery Voltage = ");
-  Serial.println(batVolt);
+  Serial.println(batVolt);*/
 
   Serial.print("Roll = ");
   Serial.println(gyro[0]);
@@ -223,9 +225,15 @@ void sendTelem(){
 
 void readTelem(){
   if (Serial2.available()){
-    String readString = Serial2.readString();
+    Serial.print("Received: ");
+    String readString;
+    /*
     readString.trim();
-    Serial.print("Received: " + readString);
+    Serial.println("Received: " + readString);*/
+    while(Serial2.available()){
+        readString += Serial2.read();
+    }
+    Serial.println(readString);
   }
   return;
 }
@@ -264,12 +272,12 @@ void setup() {
   
   Serial1.setTX(zoeTX);
   Serial1.setRX(zoeRX);
-  Serial2.setTX(xbWrite);
-  Serial2.setRX(xbRead);
+  Serial2.setTX(8);
+  Serial2.setRX(9);
 
-  Serial1.begin(9600); //xBee
+  Serial1.begin(9600); 
 
-  Serial2.begin(9600);
+  Serial2.begin(9600);//xBee
 
   //while (!Serial);
   //while (!Serial1);
@@ -366,7 +374,11 @@ void setup() {
   pinMode(rgbG, OUTPUT);
   pinMode(rgbB, OUTPUT);
 
-  changeFlightState(0);
+  pinMode(mosfet, OUTPUT); //
+
+  pinMode();
+
+  //changeFlightState(0);
   Serial.println("FInished setup");
 }
 
@@ -389,12 +401,12 @@ void loop() {
 
   if(count%2==0){
     readGPS();
-    //displaySensors();
+    displaySensors();
     saveData();
     sendTelem();
   }
   if(count==4){
-
+    /*
     if(flightState==5){
       flightState = 0;
     }
@@ -402,7 +414,7 @@ void loop() {
       flightState+= 1;
     }
     changeFlightState(flightState);
-
+    */
     count = 0;
   }
 
