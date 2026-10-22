@@ -102,6 +102,8 @@ void readSensors() {
 
   batVolt = analogRead(A0) * (5.0 / 1023.0);
 
+  teleData = teamID+","+curAlti+","+curTemp+","+curVel+","+Accel[0]+","+Accel[1]+","+Accel[2]+","+latitude+","+longitude+","+states[flightState]+","+batVolt+","+gyro[0]+","+gyro[1]+","+gyro[2];
+
   return;
 }
 
@@ -215,24 +217,44 @@ void changeFlightState(int n){
 }
 
 void sendTelem(){
-
-  teleData = teamID+","+curAlti+","+curTemp+","+curVel+","+Accel[0]+","+Accel[1]+","+Accel[2]+","+latitude+","+longitude+","+states[flightState]+","+batVolt+","+gyro[0]+","+gyro[1]+","+gyro[2];
-
-  Serial1.println(teleData);
-
+  Serial2.println(teleData);
   return;
 }
 
 void readTelem(){
-
-  if (Serial1.available()){
-
-    String readString = Serial1.readString();
+  if (Serial2.available()){
+    String readString = Serial2.readString();
     readString.trim();
     Serial.print("Received: " + readString);
+  }
+  return;
+}
 
+void saveData(){
+  
+  dataLog = SD.open("test.csv", FILE_WRITE);
+  //do stuff to the file
+  if(dataLog){
+    dataLog.println(teleData);
+    dataLog.close();
+  }
+  else{
+    Serial.println("No file? :(");
   }
 
+  /*
+  dataLog = SD.open("test.csv");
+  // read  the file
+  if(dataLog){
+    while (dataLog.available()) {
+      Serial.write(dataLog.read()); //print data to output for debug
+    }
+    dataLog.close(); //REMEMBER TO CLOSE THE FILE 
+  }
+  else{
+    Serial.println("Couldnt Read");
+  }
+  */
   return;
 }
 
@@ -249,7 +271,7 @@ void setup() {
 
   Serial2.begin(9600);
 
-  while (!Serial);
+  //while (!Serial);
   //while (!Serial1);
 
   Wire.setSDA(I2CSDA);
@@ -293,24 +315,52 @@ void setup() {
   imu.enableDefault();
   ps.enableDefault();
 
-  /*
+  
   //SD
-  Serial.print("Initializing SD card");
+  Serial.println("Initializing SD card");
 
   SPI.setRX(RX_SD);
   SPI.setTX(TX_SD);
   SPI.setSCK(SCK_SD);
-  SD.begin(CSn_SD);
 
-  dataLog = SD.open("test.csv", FILE_WRITE);
+  if(SD.begin(CSn_SD)){
+    Serial.println("SD Initialized!");
+  }
+  else{
+    Serial.println("SD did not init....");
+  }
+
+  if(SD.exists("test.csv")){
+    SD.remove("test.csv");
+  }
+
   /*
+  dataLog = SD.open("test.csv", FILE_WRITE);
   //do stuff to the file
-  dataLog.println("John,Jacob,Jingleheimer,Schmidt\n");
-  dataLog.println("His,Name,Is,Mine");
+  if(dataLog){
+    dataLog.println("John,Jacob,Jingleheimer,Schmidt");
+    dataLog.println("His,Name,Is,Mine");
 
-  Serial.write(dataLog.read()); //print data to output for debug
+    dataLog.close();
+    Serial.println("WROTE");
+  }
+  else{
+    Serial.println("No file? :(");
+  }
+
+
+  dataLog = SD.open("test.csv");
+  // read  the file
+  if(dataLog){
+    while (dataLog.available()) {
+      Serial.write(dataLog.read()); //print data to output for debug
+    }
+    dataLog.close(); //REMEMBER TO CLOSE THE FILE 
+  }
+  else{
+    Serial.println("Couldnt Read");
+  }
   */
-  //dataLog.close(); //REMEMBER TO CLOSE THE FILE 
 
   pinMode(rgbR, OUTPUT);
   pinMode(rgbG, OUTPUT);
@@ -333,17 +383,18 @@ void loop() {
   //Serial.print("Time1: ");
   //Serial.println((millis()-startTime));
 
-  if(Serial1.available()){
+  if(Serial2.available()){
     readTelem();
   }
 
   if(count%2==0){
-    //readGPS();
-    displaySensors();
+    readGPS();
+    //displaySensors();
+    saveData();
     sendTelem();
   }
   if(count==4){
-    /*
+
     if(flightState==5){
       flightState = 0;
     }
@@ -351,7 +402,7 @@ void loop() {
       flightState+= 1;
     }
     changeFlightState(flightState);
-    */
+
     count = 0;
   }
 
