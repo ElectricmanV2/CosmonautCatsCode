@@ -11,6 +11,8 @@
 
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
 
+#include <AccelStepper.h>
+
 static constexpr int I2CSDA = 4; //
 static constexpr int I2CSCL = 5; // change ports once set up
 
@@ -44,6 +46,8 @@ LSM6 imu;
 LPS ps;
 File dataLog;
 SFE_UBLOX_GNSS gps;
+
+AccelStepper motor(AccelStepper::DRIVER, 0, 1);
 
 const String teamID = "Cosmonaut Cats";
 
@@ -91,6 +95,7 @@ void readSensors() {
   int timeDifference = (millis()/1000)-prevReadTime;
 
   curVel = (curAlti-prevAlti) / timeDifference;
+  prevReadTime = millis()/1000;
 
   //Serial.println((imu.a.x * 0.061)/1000);
   Accel[0] = (imu.a.x * 0.061)/1000;
@@ -117,7 +122,6 @@ void readGPS(){
 }
 
 void displaySensors(){
-  /*
   Serial.print("Team ID: ");
   Serial.println(teamID);
 
@@ -135,7 +139,7 @@ void displaySensors(){
 
   Serial.print("Velocity = ");
   Serial.print(curVel);
-  Serial.println(" m/s");*/
+  Serial.println(" m/s");
 
   Serial.print("Accel X = ");
   Serial.print(Accel[0]);
@@ -148,7 +152,7 @@ void displaySensors(){
   Serial.print("Accel Z = ");
   Serial.print(Accel[2]);
   Serial.println(" m/s");
-  /*
+
   Serial.print("GPS Latitude = ");
   Serial.println(latitude);
 
@@ -159,7 +163,7 @@ void displaySensors(){
   Serial.println(states[flightState]);
 
   Serial.print("Battery Voltage = ");
-  Serial.println(batVolt);*/
+  Serial.println(batVolt);
 
   Serial.print("Roll = ");
   Serial.println(gyro[0]);
@@ -219,21 +223,27 @@ void changeFlightState(int n){
 }
 
 void sendTelem(){
-  Serial2.println(teleData);
+  //Serial2.println(teleData);
   return;
 }
 
 void readTelem(){
   if (Serial2.available()){
-    Serial.print("Received: ");
+    Serial.print("Received");
     String readString;
     /*
     readString.trim();
     Serial.println("Received: " + readString);*/
+    /*
     while(Serial2.available()){
         readString += Serial2.read();
-    }
-    Serial.println(readString);
+    }*/
+
+    readString = Serial2.readStringUntil('\n');
+    readString = readString.substring(0,readString.length()-2);
+
+    Serial.println("Received: " + readString);
+    Serial2.println("Received: " + readString);
   }
   return;
 }
@@ -376,7 +386,9 @@ void setup() {
 
   pinMode(mosfet, OUTPUT); //
 
-  pinMode();
+  motor.setSpeed(300.0);
+  motor.setAcceleration(100.0);
+  motor.setCurrentPosition(0);
 
   //changeFlightState(0);
   Serial.println("FInished setup");
@@ -401,7 +413,7 @@ void loop() {
 
   if(count%2==0){
     readGPS();
-    displaySensors();
+    //displaySensors();
     saveData();
     sendTelem();
   }
