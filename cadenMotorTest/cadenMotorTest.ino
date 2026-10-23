@@ -1,6 +1,6 @@
 #include <AccelStepper.h>
 
-AccelStepper motor(AccelStepper::DRIVER, 0, 1);
+AccelStepper motor(AccelStepper::DRIVER, 11, 10);
 
 void setup() {
   // put your setup code here, to run once:
@@ -14,8 +14,7 @@ void loop() {
   Serial.begin(9600);
   Serial.println("Stepping");
 
-  motor.moveTo(90);
-  motor.runSpeedToPosition();
+  motor.moveTo(5000);
   delay(2000);
   motor.setCurrentPosition(0);
   delay(2000);

@@ -13,6 +13,9 @@
 
 #include <AccelStepper.h>
 
+float const gConv = 0.10197162129779;
+
+//Imu
 static constexpr int I2CSDA = 4; //
 static constexpr int I2CSCL = 5; // change ports once set up
 
@@ -38,6 +41,7 @@ int rgbR = 20;
 int rgbG = 21;
 int rgbB = 22;
 
+//Runcam
 int mosfet = 2;
 
 #define seaLevelPressure (1013.25)
@@ -69,6 +73,7 @@ String states[6] = {"Launch Detect","Boost","Coast","Apogee","Descent","Landed"}
 int flightState = 0;
 
 float Accel[3] = {0,0,0};
+float gs = 0.00;
 float gyro[3] = {0,0,0}; //roll, pitch, yaw
 
 String teleData = ""; //TeamID , Altitude, Temperature, Velocity, Accel X, Accel Y, Accel Z, GPS Lat, GPS Long, Flight State, Bat Volt, Roll, Pitch, Yaw
@@ -101,6 +106,8 @@ void readSensors() {
   Accel[0] = (imu.a.x * 0.061)/1000;
   Accel[1] = (imu.a.y * 0.061)/1000;
   Accel[2] = (imu.a.z * 0.061)/1000;
+
+  gs = ((Accel[0] + Accel[1] + Accel[2])/3)*gConv;
 
 
   gyro[0] = (imu.g.x * 0.061)/1000;
@@ -179,51 +186,8 @@ void displaySensors(){
   return;
 }
 
-void changeFlightState(int n){
-  flightState = n;
-  //rgb
-  switch(flightState){
-    case 0:
-      digitalWrite(rgbR, 1);
-      digitalWrite(rgbG, 0);
-      digitalWrite(rgbB, 0);
-      break;
-    case 1:
-      digitalWrite(rgbR, 0);
-      digitalWrite(rgbG, 1);
-      digitalWrite(rgbB, 0);
-      break;
-    case 2:
-      digitalWrite(rgbR, 0);
-      digitalWrite(rgbG, 0);
-      digitalWrite(rgbB, 1);
-      break;
-    case 3:
-      digitalWrite(rgbR, 1);
-      digitalWrite(rgbG, 1);
-      digitalWrite(rgbB, 0);
-      break;
-    case 4:
-      digitalWrite(rgbR, 1);
-      digitalWrite(rgbG, 0);
-      digitalWrite(rgbB, 1);
-      break;
-    case 5:
-      digitalWrite(rgbR, 0);
-      digitalWrite(rgbG, 1);
-      digitalWrite(rgbB, 1);
-      break;
-    default:
-      digitalWrite(rgbR, HIGH);
-      digitalWrite(rgbG, HIGH);
-      digitalWrite(rgbB, HIGH);
-      break;
-  }
-  return;
-}
-
 void sendTelem(){
-  //Serial2.println(teleData);
+  Serial2.println(teleData);
   return;
 }
 
@@ -231,13 +195,6 @@ void readTelem(){
   if (Serial2.available()){
     Serial.print("Received");
     String readString;
-    /*
-    readString.trim();
-    Serial.println("Received: " + readString);*/
-    /*
-    while(Serial2.available()){
-        readString += Serial2.read();
-    }*/
 
     readString = Serial2.readStringUntil('\n');
     readString = readString.substring(0,readString.length()-2);
@@ -259,20 +216,63 @@ void saveData(){
   else{
     Serial.println("No file? :(");
   }
+  return;
+}
 
-  /*
-  dataLog = SD.open("test.csv");
-  // read  the file
-  if(dataLog){
-    while (dataLog.available()) {
-      Serial.write(dataLog.read()); //print data to output for debug
-    }
-    dataLog.close(); //REMEMBER TO CLOSE THE FILE 
+void airbrakeAct(int input){
+  if(input==1){ //Open airbrake
+    motor.moveTo(50/1.8);
   }
-  else{
-    Serial.println("Couldnt Read");
+  else{ //Close airbrake
+    motor.moveTo(-50/1.8); 
   }
-  */
+  return;
+}
+
+void changeFlightState(int n){
+  flightState = n;
+  //rgb
+  switch(flightState){
+    case 0: //Waiting for launch
+      digitalWrite(rgbR, 1);
+      digitalWrite(rgbG, 0);
+      digitalWrite(rgbB, 0);
+      break;
+    case 1: //Boost
+      digitalWrite(mosfet,1);
+      digitalWrite(rgbR, 0);
+      digitalWrite(rgbG, 1);
+      digitalWrite(rgbB, 0);
+      break;
+    case 2: //Coast
+      airbrakeAct(1);
+      digitalWrite(rgbR, 0);
+      digitalWrite(rgbG, 0);
+      digitalWrite(rgbB, 1);
+      break;
+    case 3: //Apogee
+      digitalWrite(rgbR, 1);
+      digitalWrite(rgbG, 1);
+      digitalWrite(rgbB, 0);
+      break;
+    case 4: //Descent
+      airbrakeAct(0);
+      digitalWrite(rgbR, 1);
+      digitalWrite(rgbG, 0);
+      digitalWrite(rgbB, 1);
+      break;
+    case 5: //Landed
+      digitalWrite(mosfet,0);
+      digitalWrite(rgbR, 0);
+      digitalWrite(rgbG, 1);
+      digitalWrite(rgbB, 1);
+      break;
+    default:
+      digitalWrite(rgbR, HIGH);
+      digitalWrite(rgbG, HIGH);
+      digitalWrite(rgbB, HIGH);
+      break;
+  }
   return;
 }
 
@@ -288,9 +288,6 @@ void setup() {
   Serial1.begin(9600); 
 
   Serial2.begin(9600);//xBee
-
-  //while (!Serial);
-  //while (!Serial1);
 
   Wire.setSDA(I2CSDA);
   Wire.setSCL(I2CSCL);
@@ -308,13 +305,6 @@ void setup() {
     Serial.println("Failed to autodetect pressure sensor!");
     while (1);
   }
-
-  /*
-  if (!gps.begin(Serial1)) //Connect to the u-blox module using Wire port
-  {
-    Serial.println(F("u-blox GNSS not detected at default I2C address. Please check wiring. Freezing."));
-    while (1);
-  }*/
 
   if(gps.begin(Serial1) == true){
     Serial.println("Connected at 9600 baud!");
@@ -404,6 +394,29 @@ void loop() {
   
   readSensors();
 
+  if(flightState==0 && gs > 10){
+    //GO TO BOOST!!!
+    startTime = millis();
+    changeFlightState(1);
+  }
+  else if(flightState == 1 && abs(gs) <= 1 && ((millis()-startTime)/1000) > 4){
+    //COASTING!!
+    changeFlightState(2);
+  }
+  else if(flightState == 2 && abs(curVel) <= 20){
+    //APOGEE!!
+    changeFlightState(3);
+  }
+  else if(flightState == 3 && gs <= -1.5){
+    //DESCENT!!
+    changeFlightState(4);
+  }
+  else if(flightState==4 && abs(curVel) <= 5 && abs(gs) <= 1){
+    //LANDED!!
+    changeFlightState(5);
+  }
+
+
   //Serial.print("Time1: ");
   //Serial.println((millis()-startTime));
 
@@ -413,7 +426,7 @@ void loop() {
 
   if(count%2==0){
     readGPS();
-    //displaySensors();
+    displaySensors();
     saveData();
     sendTelem();
   }
