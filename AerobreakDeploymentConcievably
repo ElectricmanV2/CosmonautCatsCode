@@ -4,7 +4,7 @@
   // this stuff needs to be added in the beginnging
   
   #include <AccelStepper.h>
-  AccelStepper sigmaStepper(AccelStepper::DRIVER, STEP, DIR);
+  AccelStepper stepper(AccelStepper::DRIVER, 1, 0);
   
   // this needs to be entered in set up
   void setup(){
