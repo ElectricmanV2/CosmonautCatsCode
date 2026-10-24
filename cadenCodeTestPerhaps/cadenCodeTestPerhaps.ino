@@ -201,6 +201,7 @@ void readTelem(){
 
     if(readString == "DEPLOY"){
       airbrakeAct(1);
+      changeFlightState(2);
     }
 
     Serial.println("Received: " + readString);
@@ -225,10 +226,10 @@ void saveData(){
 
 void airbrakeAct(int input){
   if(input==1){ //Open airbrake
-    stepper.runToNewPosition(300);
+    motor.runToNewPosition(300);
   }
   else{ //Close airbrake
-    stepper.runToNewPosition(-300);
+    motor.runToNewPosition(0);
   }
   return;
 }
