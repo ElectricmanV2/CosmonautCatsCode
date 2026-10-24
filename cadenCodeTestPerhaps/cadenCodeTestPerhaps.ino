@@ -51,7 +51,7 @@ LPS ps;
 File dataLog;
 SFE_UBLOX_GNSS gps;
 
-AccelStepper motor(AccelStepper::DRIVER, 0, 1);
+AccelStepper motor(AccelStepper::DRIVER, 11, 10);
 
 const String teamID = "Cosmonaut Cats";
 
@@ -199,6 +199,10 @@ void readTelem(){
     readString = Serial2.readStringUntil('\n');
     readString = readString.substring(0,readString.length()-2);
 
+    if(readString == "DEPLOY"){
+      airbrakeAct(1);
+    }
+
     Serial.println("Received: " + readString);
     Serial2.println("Received: " + readString);
   }
@@ -221,10 +225,10 @@ void saveData(){
 
 void airbrakeAct(int input){
   if(input==1){ //Open airbrake
-    motor.moveTo(50/1.8);
+    stepper.runToNewPosition(300);
   }
   else{ //Close airbrake
-    motor.moveTo(-50/1.8); 
+    stepper.runToNewPosition(-300);
   }
   return;
 }
@@ -342,45 +346,17 @@ void setup() {
     SD.remove("test.csv");
   }
 
-  /*
-  dataLog = SD.open("test.csv", FILE_WRITE);
-  //do stuff to the file
-  if(dataLog){
-    dataLog.println("John,Jacob,Jingleheimer,Schmidt");
-    dataLog.println("His,Name,Is,Mine");
-
-    dataLog.close();
-    Serial.println("WROTE");
-  }
-  else{
-    Serial.println("No file? :(");
-  }
-
-
-  dataLog = SD.open("test.csv");
-  // read  the file
-  if(dataLog){
-    while (dataLog.available()) {
-      Serial.write(dataLog.read()); //print data to output for debug
-    }
-    dataLog.close(); //REMEMBER TO CLOSE THE FILE 
-  }
-  else{
-    Serial.println("Couldnt Read");
-  }
-  */
-
   pinMode(rgbR, OUTPUT);
   pinMode(rgbG, OUTPUT);
   pinMode(rgbB, OUTPUT);
 
   pinMode(mosfet, OUTPUT); //
 
-  motor.setSpeed(300.0);
-  motor.setAcceleration(100.0);
+  motor.setMaxSpeed(3000.0);
+  motor.setAcceleration(4000.0);
   motor.setCurrentPosition(0);
 
-  //changeFlightState(0);
+  changeFlightState(0);
   Serial.println("FInished setup");
 }
 
@@ -416,35 +392,19 @@ void loop() {
     changeFlightState(5);
   }
 
-
-  //Serial.print("Time1: ");
-  //Serial.println((millis()-startTime));
-
   if(Serial2.available()){
     readTelem();
   }
 
   if(count%2==0){
     readGPS();
-    displaySensors();
+    //displaySensors();
     saveData();
     sendTelem();
   }
   if(count==4){
-    /*
-    if(flightState==5){
-      flightState = 0;
-    }
-    else{
-      flightState+= 1;
-    }
-    changeFlightState(flightState);
-    */
     count = 0;
   }
-
-  //Serial.print("Time2: ");
-  //Serial.println((millis()-startTime));
 
   while((millis()-startTime) < 250);
 }
